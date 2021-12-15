@@ -14,21 +14,29 @@ namespace Jwt_Test.Controllers
     [ApiController]
     public class LoginController : ControllerBase
     {
-        [Route("Login")]
-        [AllowAnonymous]
-        [HttpGet]
-        public IActionResult CheckLogin(string userId, string userPwd)
+        private readonly IAuthenticateService authService;
+        public LoginController(IAuthenticateService authenticateService)
         {
-            if (userId == "colin" && userPwd == "123")
+            this.authService = authenticateService;
+        }
+
+
+
+        [Route("api/login")]
+        [AllowAnonymous]
+        [HttpPost]
+        public IActionResult CheckLogin([FromBody] LoginInfo loginInfo)
+        {
+            if (!ModelState.IsValid)
             {
-                var claims = new[]
-                {
-                    new Claim(JwtRegisteredClaimNames.Nbf,$"{new DateTimeOffset(DateTime.Now).ToUnixTimeSeconds()}") ,
-                    new Claim (JwtRegisteredClaimNames.Exp,$"{new DateTimeOffset(DateTime.Now.AddMinutes(30)).ToUnixTimeSeconds()}"),
-                    new Claim(ClaimTypes.Name,userId)
-                };
-                var key = new SymmetricKeyWrapProvider(Encoding.UTF8.GetBytes(Const.SecurityKey));
+                return BadRequest("Invalid Request");
             }
+            string token;
+            if (authService.IsAuthenticated(loginInfo, out token))
+            {
+                return Ok(token);
+            }
+            return BadRequest("Invalid Request");
         }
     }
 }
